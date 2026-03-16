@@ -5,6 +5,7 @@ import 'package:flaride_driver/core/services/auth_provider.dart';
 import 'package:flaride_driver/core/services/auth_service.dart';
 import 'package:flaride_driver/core/providers/driver_provider.dart';
 import 'package:flaride_driver/core/providers/ride_provider.dart';
+import 'package:flaride_driver/features/driver/parcels/parcel_driver_provider.dart';
 import 'package:flaride_driver/features/auth/screens/login_screen.dart';
 import 'package:flaride_driver/features/driver/driver_home_page.dart';
 import 'package:flaride_driver/features/splash/splash_screen.dart';
@@ -30,6 +31,9 @@ class FlaRideDriverApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => DriverRideProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ParcelDriverProvider(),
         ),
       ],
       child: MaterialApp(

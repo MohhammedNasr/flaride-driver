@@ -77,7 +77,8 @@ class DriverService {
     try {
       final token = await _getToken();
       if (token == null) {
-        return DriverUpdateResponse(success: false, message: 'Not authenticated');
+        return DriverUpdateResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final body = <String, dynamic>{};
@@ -154,12 +155,15 @@ class DriverService {
     try {
       final token = await _getToken();
       if (token == null) {
-        return DriverUpdateResponse(success: false, message: 'Not authenticated');
+        return DriverUpdateResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final body = <String, dynamic>{};
-      if (maxDeliveryDistanceKm != null) body['max_delivery_distance_km'] = maxDeliveryDistanceKm;
-      if (preferredWorkAreas != null) body['preferred_work_areas'] = preferredWorkAreas;
+      if (maxDeliveryDistanceKm != null)
+        body['max_delivery_distance_km'] = maxDeliveryDistanceKm;
+      if (preferredWorkAreas != null)
+        body['preferred_work_areas'] = preferredWorkAreas;
       if (hasInsulatedBag != null) body['has_insulated_bag'] = hasInsulatedBag;
 
       final response = await http.put(
@@ -204,11 +208,16 @@ class DriverService {
       if (fullName != null) body['full_name'] = fullName;
       if (phone != null) body['phone'] = phone;
       if (profilePhoto != null) body['profile_photo'] = profilePhoto;
-      if (driverLicenseFrontUrl != null) body['driver_license_front_url'] = driverLicenseFrontUrl;
-      if (driverLicenseBackUrl != null) body['driver_license_back_url'] = driverLicenseBackUrl;
-      if (nationalIdFrontUrl != null) body['national_id_front_url'] = nationalIdFrontUrl;
-      if (nationalIdBackUrl != null) body['national_id_back_url'] = nationalIdBackUrl;
-      if (vehicleRegistrationUrl != null) body['vehicle_registration_url'] = vehicleRegistrationUrl;
+      if (driverLicenseFrontUrl != null)
+        body['driver_license_front_url'] = driverLicenseFrontUrl;
+      if (driverLicenseBackUrl != null)
+        body['driver_license_back_url'] = driverLicenseBackUrl;
+      if (nationalIdFrontUrl != null)
+        body['national_id_front_url'] = nationalIdFrontUrl;
+      if (nationalIdBackUrl != null)
+        body['national_id_back_url'] = nationalIdBackUrl;
+      if (vehicleRegistrationUrl != null)
+        body['vehicle_registration_url'] = vehicleRegistrationUrl;
 
       debugPrint('DriverService.updateProfile: Sending $body');
       final response = await http.put(
@@ -220,7 +229,8 @@ class DriverService {
         body: json.encode(body),
       );
 
-      debugPrint('DriverService.updateProfile: Response ${response.statusCode}');
+      debugPrint(
+          'DriverService.updateProfile: Response ${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Update profile error: $e');
@@ -246,7 +256,8 @@ class DriverService {
       if (vehicleBrand != null) body['vehicle_brand'] = vehicleBrand;
       if (vehicleModel != null) body['vehicle_model'] = vehicleModel;
       if (vehicleColor != null) body['vehicle_color'] = vehicleColor;
-      if (vehicleLicensePlate != null) body['vehicle_license_plate'] = vehicleLicensePlate;
+      if (vehicleLicensePlate != null)
+        body['vehicle_license_plate'] = vehicleLicensePlate;
       if (vehicleYear != null) body['vehicle_year'] = vehicleYear;
 
       final response = await http.put(
@@ -279,9 +290,12 @@ class DriverService {
       if (token == null) return false;
 
       final body = <String, dynamic>{};
-      if (preferredMethod != null) body['preferred_payout_method'] = preferredMethod;
-      if (mobileMoneyNumber != null) body['payout_mobile_money_number'] = mobileMoneyNumber;
-      if (mobileMoneyProvider != null) body['payout_mobile_money_provider'] = mobileMoneyProvider;
+      if (preferredMethod != null)
+        body['preferred_payout_method'] = preferredMethod;
+      if (mobileMoneyNumber != null)
+        body['payout_mobile_money_number'] = mobileMoneyNumber;
+      if (mobileMoneyProvider != null)
+        body['payout_mobile_money_provider'] = mobileMoneyProvider;
       if (bankAccount != null) body['payout_bank_account'] = bankAccount;
       if (bankName != null) body['payout_bank_name'] = bankName;
       if (bankBranch != null) body['bank_branch'] = bankBranch;
@@ -307,7 +321,8 @@ class DriverService {
     try {
       final token = await _getToken();
       if (token == null) {
-        return OrderDetailsResponse(success: false, message: 'Not authenticated');
+        return OrderDetailsResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final response = await http.get(
@@ -338,7 +353,8 @@ class DriverService {
   }
 
   /// Get driver's earnings summary and history
-  Future<EarningsResponse> getEarnings({String? status, String? period, int limit = 50, int offset = 0}) async {
+  Future<EarningsResponse> getEarnings(
+      {String? status, String? period, int limit = 50, int offset = 0}) async {
     try {
       final token = await _getToken();
       if (token == null) {
@@ -352,7 +368,8 @@ class DriverService {
       if (status != null) queryParams['status'] = status;
       if (period != null) queryParams['period'] = period;
 
-      final uri = Uri.parse('$_baseApiUrl/driver/earnings').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$_baseApiUrl/driver/earnings')
+          .replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -369,8 +386,9 @@ class DriverService {
           summary: EarningsSummary.fromJson(data['summary'] ?? {}),
           payoutInfo: PayoutInfo.fromJson(data['payout_info'] ?? {}),
           earnings: (data['earnings'] as List?)
-              ?.map((e) => Earning.fromJson(e))
-              .toList() ?? [],
+                  ?.map((e) => Earning.fromJson(e))
+                  .toList() ??
+              [],
         );
       } else {
         final data = json.decode(response.body);
@@ -394,7 +412,8 @@ class DriverService {
     try {
       final token = await _getToken();
       if (token == null) {
-        return PayoutRequestResponse(success: false, message: 'Not authenticated');
+        return PayoutRequestResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final response = await http.post(
@@ -426,16 +445,19 @@ class DriverService {
       }
     } catch (e) {
       debugPrint('Request payout error: $e');
-      return PayoutRequestResponse(success: false, message: 'Network error: $e');
+      return PayoutRequestResponse(
+          success: false, message: 'Network error: $e');
     }
   }
 
   /// Get payout history
-  Future<PayoutHistoryResponse> getPayoutHistory({int limit = 20, int offset = 0}) async {
+  Future<PayoutHistoryResponse> getPayoutHistory(
+      {int limit = 20, int offset = 0}) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        return PayoutHistoryResponse(success: false, message: 'Not authenticated');
+        return PayoutHistoryResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final uri = Uri.parse('$_baseApiUrl/driver/payouts').replace(
@@ -458,8 +480,9 @@ class DriverService {
         return PayoutHistoryResponse(
           success: true,
           payouts: (data['payouts'] as List?)
-              ?.map((p) => PayoutHistory.fromJson(p))
-              .toList() ?? [],
+                  ?.map((p) => PayoutHistory.fromJson(p))
+                  .toList() ??
+              [],
         );
       } else {
         final data = json.decode(response.body);
@@ -470,16 +493,19 @@ class DriverService {
       }
     } catch (e) {
       debugPrint('Get payout history error: $e');
-      return PayoutHistoryResponse(success: false, message: 'Network error: $e');
+      return PayoutHistoryResponse(
+          success: false, message: 'Network error: $e');
     }
   }
 
   /// Get driver's order history
-  Future<OrderHistoryResponse> getOrderHistory({String? status, int limit = 50, int offset = 0}) async {
+  Future<OrderHistoryResponse> getOrderHistory(
+      {String? status, int limit = 50, int offset = 0}) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        return OrderHistoryResponse(success: false, message: 'Not authenticated');
+        return OrderHistoryResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final queryParams = <String, String>{
@@ -488,7 +514,8 @@ class DriverService {
       };
       if (status != null) queryParams['status'] = status;
 
-      final uri = Uri.parse('$_baseApiUrl/driver/orders/history').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$_baseApiUrl/driver/orders/history')
+          .replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -502,12 +529,13 @@ class DriverService {
         final data = json.decode(response.body);
         return OrderHistoryResponse(
           success: true,
-          activeOrder: data['active_order'] != null 
-              ? HistoryOrder.fromJson(data['active_order']) 
+          activeOrder: data['active_order'] != null
+              ? HistoryOrder.fromJson(data['active_order'])
               : null,
           orders: (data['orders'] as List?)
-              ?.map((o) => HistoryOrder.fromJson(o))
-              .toList() ?? [],
+                  ?.map((o) => HistoryOrder.fromJson(o))
+                  .toList() ??
+              [],
           stats: OrderStats.fromJson(data['stats'] ?? {}),
         );
       } else {
@@ -524,11 +552,13 @@ class DriverService {
   }
 
   /// Update order status (picked_up, delivered, etc.)
-  Future<UpdateStatusResponse> updateOrderStatus(String orderId, String status) async {
+  Future<UpdateStatusResponse> updateOrderStatus(
+      String orderId, String status) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        return UpdateStatusResponse(success: false, message: 'Not authenticated');
+        return UpdateStatusResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final response = await http.patch(
@@ -565,7 +595,8 @@ class DriverService {
     try {
       final token = await _getToken();
       if (token == null) {
-        return AcceptOrderResponse(success: false, message: 'Not authenticated');
+        return AcceptOrderResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final response = await http.post(
@@ -603,15 +634,16 @@ class DriverService {
     try {
       final token = await _getToken();
       if (token == null) {
-        return AvailableOrdersResponse(success: false, message: 'Not authenticated');
+        return AvailableOrdersResponse(
+            success: false, message: 'Not authenticated');
       }
 
       final queryParams = <String, String>{};
       if (latitude != null) queryParams['lat'] = latitude.toString();
       if (longitude != null) queryParams['lng'] = longitude.toString();
 
-      final uri = Uri.parse('$_baseApiUrl/driver/orders/available')
-          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final uri = Uri.parse('$_baseApiUrl/driver/orders/available').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -621,24 +653,15 @@ class DriverService {
         },
       );
 
-      debugPrint('Available orders response: ${response.statusCode}');
-      debugPrint('Available orders body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        debugPrint('Parsed data: $data');
-        debugPrint('Orders count from API: ${data['count']}');
         final ordersList = data['orders'] as List?;
-        debugPrint('Orders list: $ordersList');
-        
-        final orders = ordersList
-            ?.map((o) {
-              debugPrint('Parsing order: $o');
+
+        final orders = ordersList?.map((o) {
               return AvailableOrder.fromJson(o);
-            })
-            .toList() ?? [];
-        debugPrint('Parsed ${orders.length} orders');
-        
+            }).toList() ??
+            [];
+
         // Extract activeOrderId - can be string or object with xata_id
         String? activeOrderId;
         final activeOrderData = data['activeOrderId'];
@@ -647,7 +670,7 @@ class DriverService {
         } else if (activeOrderData is Map) {
           activeOrderId = activeOrderData['xata_id'] as String?;
         }
-        
+
         return AvailableOrdersResponse(
           success: true,
           orders: orders,
@@ -664,7 +687,8 @@ class DriverService {
       }
     } catch (e) {
       debugPrint('Get available orders error: $e');
-      return AvailableOrdersResponse(success: false, message: 'Network error: $e');
+      return AvailableOrdersResponse(
+          success: false, message: 'Network error: $e');
     }
   }
 }
@@ -793,7 +817,7 @@ class OrderDetails {
   final DateTime? readyForPickupAt;
   final String? timeSinceReady;
   final int? estimatedDeliveryMinutes;
-  
+
   // Amounts
   final int subtotal;
   final String subtotalDisplay;
@@ -806,33 +830,33 @@ class OrderDetails {
   final int totalAmount;
   final String totalAmountDisplay;
   final String estimatedEarnings;
-  
+
   // Items
   final List<OrderItem> items;
   final int itemsCount;
-  
+
   // Distances
   final String? pickupDistanceKm;
   final String? deliveryDistanceKm;
   final String? totalDistanceKm;
-  
+
   // Restaurant
   final OrderRestaurant? restaurant;
-  
+
   // Customer
   final OrderCustomer? customer;
-  
+
   // Delivery
   final OrderDelivery? delivery;
-  
+
   // Payment
   final String? paymentMethod;
   final String? paymentStatus;
-  
+
   // Notes
   final String? notes;
   final String? specialInstructions;
-  
+
   // Availability
   final bool isAvailable;
   final bool alreadyAssigned;
@@ -881,8 +905,12 @@ class OrderDetails {
       orderNumber: json['order_number'] ?? '',
       status: json['status'] ?? '',
       orderType: json['order_type'],
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      readyForPickupAt: json['ready_for_pickup_at'] != null ? DateTime.tryParse(json['ready_for_pickup_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      readyForPickupAt: json['ready_for_pickup_at'] != null
+          ? DateTime.tryParse(json['ready_for_pickup_at'])
+          : null,
       timeSinceReady: json['time_since_ready'],
       estimatedDeliveryMinutes: json['estimated_delivery_time_minutes'],
       subtotal: json['subtotal'] ?? 0,
@@ -896,14 +924,23 @@ class OrderDetails {
       totalAmount: json['total_amount'] ?? 0,
       totalAmountDisplay: json['total_amount_display'] ?? '0 CFA',
       estimatedEarnings: json['estimated_earnings'] ?? '0 CFA',
-      items: (json['items'] as List?)?.map((i) => OrderItem.fromJson(i)).toList() ?? [],
+      items: (json['items'] as List?)
+              ?.map((i) => OrderItem.fromJson(i))
+              .toList() ??
+          [],
       itemsCount: json['items_count'] ?? 0,
       pickupDistanceKm: json['pickup_distance_km']?.toString(),
       deliveryDistanceKm: json['delivery_distance_km']?.toString(),
       totalDistanceKm: json['total_distance_km']?.toString(),
-      restaurant: json['restaurant'] != null ? OrderRestaurant.fromJson(json['restaurant']) : null,
-      customer: json['customer'] != null ? OrderCustomer.fromJson(json['customer']) : null,
-      delivery: json['delivery'] != null ? OrderDelivery.fromJson(json['delivery']) : null,
+      restaurant: json['restaurant'] != null
+          ? OrderRestaurant.fromJson(json['restaurant'])
+          : null,
+      customer: json['customer'] != null
+          ? OrderCustomer.fromJson(json['customer'])
+          : null,
+      delivery: json['delivery'] != null
+          ? OrderDelivery.fromJson(json['delivery'])
+          : null,
       paymentMethod: json['payment_method'],
       paymentStatus: json['payment_status'],
       notes: json['notes'],
@@ -1097,17 +1134,17 @@ class HistoryOrder {
   final String status;
   final String statusDisplay;
   final String statusColor;
-  
+
   final DateTime? createdAt;
   final DateTime? driverAssignedAt;
   final DateTime? driverPickedUpAt;
   final DateTime? deliveredAt;
   final DateTime? cancelledAt;
   final int? deliveryTimeMinutes;
-  
+
   final int itemsCount;
   final List<HistoryOrderItem> items;
-  
+
   final int totalAmount;
   final String totalAmountDisplay;
   final int deliveryFee;
@@ -1116,15 +1153,15 @@ class HistoryOrder {
   final String driverEarningsDisplay;
   final int driverBaseEarnings;
   final String driverBaseEarningsDisplay;
-  
+
   // Tips
   final int tipAmount;
   final String? tipAmountDisplay;
-  
+
   // Rating/Review
   final double? driverRating;
   final String? driverReview;
-  
+
   final HistoryRestaurant? restaurant;
   final HistoryCustomer? customer;
   final String? deliveryAddress;
@@ -1169,14 +1206,27 @@ class HistoryOrder {
       status: json['status'] ?? '',
       statusDisplay: json['status_display'] ?? json['status'] ?? '',
       statusColor: json['status_color'] ?? '#6B7280',
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      driverAssignedAt: json['driver_assigned_at'] != null ? DateTime.tryParse(json['driver_assigned_at']) : null,
-      driverPickedUpAt: json['driver_picked_up_at'] != null ? DateTime.tryParse(json['driver_picked_up_at']) : null,
-      deliveredAt: json['delivered_at'] != null ? DateTime.tryParse(json['delivered_at']) : null,
-      cancelledAt: json['cancelled_at'] != null ? DateTime.tryParse(json['cancelled_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      driverAssignedAt: json['driver_assigned_at'] != null
+          ? DateTime.tryParse(json['driver_assigned_at'])
+          : null,
+      driverPickedUpAt: json['driver_picked_up_at'] != null
+          ? DateTime.tryParse(json['driver_picked_up_at'])
+          : null,
+      deliveredAt: json['delivered_at'] != null
+          ? DateTime.tryParse(json['delivered_at'])
+          : null,
+      cancelledAt: json['cancelled_at'] != null
+          ? DateTime.tryParse(json['cancelled_at'])
+          : null,
       deliveryTimeMinutes: json['delivery_time_minutes'],
       itemsCount: json['items_count'] ?? 0,
-      items: (json['items'] as List?)?.map((i) => HistoryOrderItem.fromJson(i)).toList() ?? [],
+      items: (json['items'] as List?)
+              ?.map((i) => HistoryOrderItem.fromJson(i))
+              .toList() ??
+          [],
       totalAmount: json['total_amount'] ?? 0,
       totalAmountDisplay: json['total_amount_display'] ?? '0 CFA',
       deliveryFee: json['delivery_fee'] ?? 0,
@@ -1184,19 +1234,30 @@ class HistoryOrder {
       driverEarnings: json['driver_earnings'] ?? 0,
       driverEarningsDisplay: json['driver_earnings_display'] ?? '0 CFA',
       driverBaseEarnings: json['driver_base_earnings'] ?? 0,
-      driverBaseEarningsDisplay: json['driver_base_earnings_display'] ?? '0 CFA',
+      driverBaseEarningsDisplay:
+          json['driver_base_earnings_display'] ?? '0 CFA',
       tipAmount: json['tip_amount'] ?? 0,
       tipAmountDisplay: json['tip_amount_display'],
       driverRating: (json['driver_rating'] as num?)?.toDouble(),
       driverReview: json['driver_review'],
-      restaurant: json['restaurant'] != null ? HistoryRestaurant.fromJson(json['restaurant']) : null,
-      customer: json['customer'] != null ? HistoryCustomer.fromJson(json['customer']) : null,
+      restaurant: json['restaurant'] != null
+          ? HistoryRestaurant.fromJson(json['restaurant'])
+          : null,
+      customer: json['customer'] != null
+          ? HistoryCustomer.fromJson(json['customer'])
+          : null,
       deliveryAddress: json['delivery_address'],
       paymentMethod: json['payment_method'],
     );
   }
 
-  bool get isActive => ['driver_assigned', 'driver_arrived', 'picked_up', 'on_the_way', 'arrived'].contains(status);
+  bool get isActive => [
+        'driver_assigned',
+        'driver_arrived',
+        'picked_up',
+        'on_the_way',
+        'arrived'
+      ].contains(status);
   bool get isCompleted => status == 'delivered';
   bool get isCancelled => status == 'cancelled';
   bool get hasTip => tipAmount > 0;
@@ -1444,9 +1505,14 @@ class Earning {
       totalAmountDisplay: json['total_amount_display'] ?? '0 CFA',
       status: json['status'] ?? 'pending',
       statusDisplay: json['status_display'] ?? 'Pending',
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      availableAt: json['available_at'] != null ? DateTime.tryParse(json['available_at']) : null,
-      paidAt: json['paid_at'] != null ? DateTime.tryParse(json['paid_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      availableAt: json['available_at'] != null
+          ? DateTime.tryParse(json['available_at'])
+          : null,
+      paidAt:
+          json['paid_at'] != null ? DateTime.tryParse(json['paid_at']) : null,
       payoutId: json['payout_id'],
     );
   }
@@ -1492,7 +1558,9 @@ class PayoutRequest {
       amountDisplay: json['amount_display'] ?? '0 CFA',
       status: json['status'] ?? 'pending',
       paymentMethod: json['payment_method'] ?? 'mobile_money',
-      requestedAt: json['requested_at'] != null ? DateTime.tryParse(json['requested_at']) : null,
+      requestedAt: json['requested_at'] != null
+          ? DateTime.tryParse(json['requested_at'])
+          : null,
     );
   }
 }
@@ -1553,9 +1621,15 @@ class PayoutHistory {
       paymentMethodDisplay: json['payment_method_display'] ?? 'Mobile Money',
       paymentAccount: json['payment_account'],
       paymentProvider: json['payment_provider'],
-      requestedAt: json['requested_at'] != null ? DateTime.tryParse(json['requested_at']) : null,
-      processedAt: json['processed_at'] != null ? DateTime.tryParse(json['processed_at']) : null,
-      completedAt: json['completed_at'] != null ? DateTime.tryParse(json['completed_at']) : null,
+      requestedAt: json['requested_at'] != null
+          ? DateTime.tryParse(json['requested_at'])
+          : null,
+      processedAt: json['processed_at'] != null
+          ? DateTime.tryParse(json['processed_at'])
+          : null,
+      completedAt: json['completed_at'] != null
+          ? DateTime.tryParse(json['completed_at'])
+          : null,
       failureReason: json['failure_reason'],
       transactionReference: json['transaction_reference'],
     );

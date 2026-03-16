@@ -28,7 +28,10 @@ class DriverProvider extends ChangeNotifier {
   OrderDetails? _activeOrderDetails;
   bool _isLoadingActiveOrder = false;
   bool _hasInitialOrdersFetch = false;
-  
+  bool _isFetchingAvailableOrders = false;
+  Future<bool>? _driverStatusCheckFuture;
+  DateTime? _lastOrdersFetchAt;
+
   // Work location
   double? _workLocationLat;
   double? _workLocationLng;
@@ -37,6 +40,8 @@ class DriverProvider extends ChangeNotifier {
   // Driver mode
   DriverMode _currentMode = DriverMode.delivery;
   static const String _driverModeKey = 'driver_current_mode';
+  static const Duration _ordersPollingInterval = Duration(seconds: 5);
+  static const Duration _minOrdersFetchGap = Duration(seconds: 3);
 
   // Getters
   Driver? get driver => _driver;
@@ -57,7 +62,8 @@ class DriverProvider extends ChangeNotifier {
   double? get workLocationLat => _workLocationLat;
   double? get workLocationLng => _workLocationLng;
   String? get workLocationAddress => _workLocationAddress;
-  bool get hasWorkLocation => _workLocationLat != null && _workLocationLng != null;
+  bool get hasWorkLocation =>
+      _workLocationLat != null && _workLocationLng != null;
 
   // Mode getters
   DriverMode get currentMode => _currentMode;
@@ -75,7 +81,8 @@ class DriverProvider extends ChangeNotifier {
 
     _currentMode = mode;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_driverModeKey, mode == DriverMode.rides ? 'rides' : 'delivery');
+    await prefs.setString(
+        _driverModeKey, mode == DriverMode.rides ? 'rides' : 'delivery');
     _driver = _driver?.copyWith(driverMode: mode);
     notifyListeners();
   }
@@ -100,8 +107,9 @@ class DriverProvider extends ChangeNotifier {
       _workLocationLat = prefs.getDouble(_workLocationLatKey);
       _workLocationLng = prefs.getDouble(_workLocationLngKey);
       _workLocationAddress = prefs.getString(_workLocationAddressKey);
-      
-      debugPrint('Loaded work location: $_workLocationAddress ($_workLocationLat, $_workLocationLng)');
+
+      debugPrint(
+          'Loaded work location: $_workLocationAddress ($_workLocationLat, $_workLocationLng)');
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading work location: $e');
@@ -109,7 +117,8 @@ class DriverProvider extends ChangeNotifier {
   }
 
   /// Save work location to local storage
-  Future<void> _saveWorkLocation(double lat, double lng, String? address) async {
+  Future<void> _saveWorkLocation(
+      double lat, double lng, String? address) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble(_workLocationLatKey, lat);
@@ -124,7 +133,18 @@ class DriverProvider extends ChangeNotifier {
   }
 
   /// Check if current user is a driver and load profile
-  Future<bool> checkDriverStatus() async {
+  Future<bool> checkDriverStatus() {
+    if (_driverStatusCheckFuture != null) {
+      return _driverStatusCheckFuture!;
+    }
+
+    final future = _checkDriverStatusInternal();
+    _driverStatusCheckFuture = future;
+    future.whenComplete(() => _driverStatusCheckFuture = null);
+    return future;
+  }
+
+  Future<bool> _checkDriverStatusInternal() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -141,7 +161,7 @@ class DriverProvider extends ChangeNotifier {
           );
         },
       );
-      
+
       // Only update if we got a successful response
       if (response.success) {
         _isDriver = response.isDriver;
@@ -155,20 +175,23 @@ class DriverProvider extends ChangeNotifier {
       await loadSavedWorkLocation();
       await _loadSavedMode();
 
-      debugPrint('Driver check: isDriver=$_isDriver, isOnline=$isOnline, mode=$_currentMode');
-      
+      debugPrint(
+          'Driver check: isDriver=$_isDriver, isOnline=$isOnline, mode=$_currentMode');
+
       _isLoading = false;
       notifyListeners();
-      
+
       // If driver is already online, update location and start fetching orders
       if (_isDriver && isOnline) {
         // Get current location and update server first
         final position = await _getCurrentLocation();
         if (position != null) {
-          await _driverService.updateLocation(
+          await _driverService
+              .updateLocation(
             latitude: position.latitude,
             longitude: position.longitude,
-          ).timeout(
+          )
+              .timeout(
             const Duration(seconds: 5),
             onTimeout: () {
               debugPrint('Location update timed out');
@@ -182,12 +205,13 @@ class DriverProvider extends ChangeNotifier {
             );
           }
         }
-        
+
         _startLocationTracking();
         _startOrdersPolling();
-        await fetchAvailableOrders(); // Fetch immediately after location update
+        await fetchAvailableOrders(
+            force: true); // Fetch immediately after location update
       }
-      
+
       return _isDriver;
     } catch (e) {
       debugPrint('Check driver status error: $e');
@@ -202,7 +226,7 @@ class DriverProvider extends ChangeNotifier {
   /// Refresh driver profile
   Future<void> refreshProfile() async {
     if (!_isDriver) return;
-    
+
     try {
       final response = await _driverService.getMyProfile();
       if (response.success && response.driver != null) {
@@ -217,14 +241,14 @@ class DriverProvider extends ChangeNotifier {
   /// Go online - start accepting orders
   Future<bool> goOnline() async {
     if (_driver == null) return false;
-    
+
     _isLoading = true;
     notifyListeners();
 
     try {
       // Get current location first
       final position = await _getCurrentLocation();
-      
+
       final response = await _driverService.updateStatus(
         isOnline: true,
         isAvailable: true,
@@ -239,13 +263,13 @@ class DriverProvider extends ChangeNotifier {
           currentLatitude: position?.latitude,
           currentLongitude: position?.longitude,
         );
-        
+
         // Start location tracking
         _startLocationTracking();
         // Start fetching available orders
         _startOrdersPolling();
         // Fetch orders immediately
-        await fetchAvailableOrders();
+        await fetchAvailableOrders(force: true);
       } else {
         _error = response.message;
       }
@@ -280,7 +304,7 @@ class DriverProvider extends ChangeNotifier {
           isOnline: false,
           isAvailable: false,
         );
-        
+
         // Stop location tracking
         _stopLocationTracking();
         // Stop orders polling
@@ -405,18 +429,18 @@ class DriverProvider extends ChangeNotifier {
           currentLongitude: longitude,
           lastLocationUpdate: DateTime.now(),
         );
-        
+
         // Save work location locally
         _workLocationLat = latitude;
         _workLocationLng = longitude;
         _workLocationAddress = address;
         await _saveWorkLocation(latitude, longitude, address);
-        
+
         notifyListeners();
-        
+
         // Refresh available orders with new location
         if (isOnline) {
-          await fetchAvailableOrders();
+          await fetchAvailableOrders(force: true);
         }
         return true;
       }
@@ -428,13 +452,23 @@ class DriverProvider extends ChangeNotifier {
   }
 
   /// Fetch available orders
-  Future<void> fetchAvailableOrders() async {
-    debugPrint('fetchAvailableOrders called - isOnline: $isOnline, driver: ${_driver != null}');
+  Future<void> fetchAvailableOrders({bool force = false}) async {
     if (!isOnline || _driver == null) {
-      debugPrint('Skipping fetch - not online or no driver');
       return;
     }
-    
+    if (_isFetchingAvailableOrders) {
+      return;
+    }
+    final now = DateTime.now();
+    if (!force &&
+        _lastOrdersFetchAt != null &&
+        now.difference(_lastOrdersFetchAt!) < _minOrdersFetchGap) {
+      return;
+    }
+
+    _lastOrdersFetchAt = now;
+    _isFetchingAvailableOrders = true;
+
     _isLoadingOrders = true;
     notifyListeners();
 
@@ -442,23 +476,19 @@ class DriverProvider extends ChangeNotifier {
       // Use work location if set, otherwise use current location
       final lat = _workLocationLat ?? _driver?.currentLatitude;
       final lng = _workLocationLng ?? _driver?.currentLongitude;
-      
-      debugPrint('Fetching orders with location: ($lat, $lng)');
-      
+
       final response = await _driverService.getAvailableOrders(
         latitude: lat,
         longitude: lng,
       );
 
-      debugPrint('Available orders response - success: ${response.success}, count: ${response.orders.length}');
       if (response.success) {
         _availableOrders = response.orders;
         _hasActiveOrder = response.hasActiveOrder;
         _activeOrderId = response.activeOrderId;
         _activeOrderMessage = response.message;
         _hasInitialOrdersFetch = true;
-        debugPrint('Updated _availableOrders with ${_availableOrders.length} orders, hasActiveOrder: $_hasActiveOrder, activeOrderId: $_activeOrderId');
-        
+
         // Fetch active order details if there's an active order
         if (_hasActiveOrder && _activeOrderId != null) {
           await _fetchActiveOrderDetails();
@@ -466,12 +496,13 @@ class DriverProvider extends ChangeNotifier {
           _activeOrderDetails = null;
         }
       } else {
-        debugPrint('Response failed: ${response.message}');
         _hasInitialOrdersFetch = true;
       }
     } catch (e) {
       debugPrint('Fetch available orders error: $e');
       _hasInitialOrdersFetch = true;
+    } finally {
+      _isFetchingAvailableOrders = false;
     }
 
     _isLoadingOrders = false;
@@ -481,20 +512,21 @@ class DriverProvider extends ChangeNotifier {
   /// Fetch active order details
   Future<void> _fetchActiveOrderDetails() async {
     if (_activeOrderId == null) return;
-    
+
     _isLoadingActiveOrder = true;
     // Don't notify here to avoid UI flicker
-    
+
     try {
       final response = await _driverService.getOrderDetails(_activeOrderId!);
       if (response.success && response.order != null) {
         _activeOrderDetails = response.order;
-        debugPrint('Fetched active order details: ${_activeOrderDetails?.orderNumber}');
+        debugPrint(
+            'Fetched active order details: ${_activeOrderDetails?.orderNumber}');
       }
     } catch (e) {
       debugPrint('Fetch active order details error: $e');
     }
-    
+
     _isLoadingActiveOrder = false;
   }
 
@@ -508,8 +540,8 @@ class DriverProvider extends ChangeNotifier {
   /// Start polling for available orders
   void _startOrdersPolling() {
     _ordersTimer?.cancel();
-    // Poll every 10 seconds for new orders (faster for better responsiveness)
-    _ordersTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    // Poll frequently while keeping a fetch cooldown to avoid network spam.
+    _ordersTimer = Timer.periodic(_ordersPollingInterval, (_) {
       fetchAvailableOrders();
     });
   }

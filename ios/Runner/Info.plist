@@ -55,6 +55,12 @@
 	<string>AIzaSyBlLb3x5TXDNL2WE2PlT7BJGOFBhg-JM3o</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>FlaRide Driver uses Face ID for quick and secure login.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>FlaRide Driver needs camera access to capture required pickup and drop-off proof photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FlaRide Driver needs photo library access to upload parcel proof images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>FlaRide Driver needs permission to save captured delivery proof images when needed.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

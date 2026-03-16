@@ -10,6 +10,8 @@ import 'package:flaride_driver/features/driver/order_details_screen.dart';
 import 'package:flaride_driver/features/driver/active_delivery_screen.dart';
 import 'package:flaride_driver/features/driver/rides/ride_offer_overlay.dart';
 import 'package:flaride_driver/features/driver/rides/active_ride_screen.dart';
+import 'package:flaride_driver/features/driver/parcels/parcel_driver_provider.dart';
+import 'package:flaride_driver/features/driver/parcels/active_parcel_delivery_screen.dart';
 import 'package:flaride_driver/features/driver/home/screens/driver_home_screen.dart';
 import 'package:flaride_driver/features/driver/widgets/driver_account_tab.dart';
 import 'package:flaride_driver/features/driver/widgets/driver_bottom_nav.dart';
@@ -27,7 +29,8 @@ class DriverHomePage extends StatefulWidget {
   State<DriverHomePage> createState() => _DriverHomePageState();
 }
 
-class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObserver {
+class _DriverHomePageState extends State<DriverHomePage>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
   Timer? _orderCheckTimer;
 
@@ -42,15 +45,26 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
       final rideProvider = context.read<DriverRideProvider>();
       rideProvider.checkExistingTrip();
       rideProvider.addListener(_onRideStateChanged);
+      // Check for existing parcel order
+      final parcelProvider = context.read<ParcelDriverProvider>();
+      parcelProvider.checkExistingOrder();
+      parcelProvider.addListener(_onParcelStateChanged);
     });
   }
-  
+
+  bool _isOnActiveParcelScreen = false;
+
   @override
   void dispose() {
     _orderCheckTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     try {
       context.read<DriverRideProvider>().removeListener(_onRideStateChanged);
+    } catch (_) {}
+    try {
+      context
+          .read<ParcelDriverProvider>()
+          .removeListener(_onParcelStateChanged);
     } catch (_) {}
     super.dispose();
   }
@@ -63,24 +77,29 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
     final rideProvider = context.read<DriverRideProvider>();
 
     // Show offer overlay when a new offer arrives
-    if (rideProvider.state == DriverRideState.hasOffer && rideProvider.currentOffer != null && !_isShowingOffer) {
+    if (rideProvider.state == DriverRideState.hasOffer &&
+        rideProvider.currentOffer != null &&
+        !_isShowingOffer) {
       _isShowingOffer = true;
       _showOfferOverlay(rideProvider.currentOffer!);
     }
 
     // Navigate to active ride screen when trip starts or is restored
     if ((rideProvider.state == DriverRideState.enRouteToPickup ||
-         rideProvider.state == DriverRideState.waitingAtPickup ||
-         rideProvider.state == DriverRideState.inProgress) &&
+            rideProvider.state == DriverRideState.waitingAtPickup ||
+            rideProvider.state == DriverRideState.inProgress) &&
         rideProvider.activeTrip != null) {
       // Avoid pushing duplicate routes
       if (!_isOnActiveRideScreen) {
         _isOnActiveRideScreen = true;
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ActiveRideScreen(initialTrip: rideProvider.activeTrip!),
-          ),
-        ).then((_) => _isOnActiveRideScreen = false);
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    ActiveRideScreen(initialTrip: rideProvider.activeTrip!),
+              ),
+            )
+            .then((_) => _isOnActiveRideScreen = false);
       }
     }
   }
@@ -107,26 +126,67 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
     );
   }
 
+  void _onParcelStateChanged() {
+    if (!mounted) return;
+    final parcelProvider = context.read<ParcelDriverProvider>();
+    final isHomeRouteCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    if (!isHomeRouteCurrent) return;
+    // Navigate to active parcel delivery screen when order is accepted
+    if (parcelProvider.hasActiveParcelOrder &&
+        parcelProvider.activeOrder != null &&
+        !_isOnActiveParcelScreen) {
+      _isOnActiveParcelScreen = true;
+      Navigator.of(context)
+          .push(
+        MaterialPageRoute(
+          builder: (_) => const ActiveParcelDeliveryScreen(),
+        ),
+      )
+          .then((_) {
+        _isOnActiveParcelScreen = false;
+        // Refresh orders after returning
+        if (mounted) {
+          context.read<ParcelDriverProvider>().fetchAvailableOrders();
+          context.read<DriverProvider>().fetchAvailableOrders(force: true);
+        }
+      });
+    }
+  }
+
   void _startBackgroundOrderCheck() {
     _orderCheckTimer?.cancel();
-    _orderCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+    _orderCheckTimer = Timer.periodic(
+        ParcelDriverProvider.availableOrdersPollInterval, (timer) {
       final driverProvider = context.read<DriverProvider>();
       if (driverProvider.isOnline && mounted) {
-        driverProvider.fetchAvailableOrders();
+        context.read<ParcelDriverProvider>().fetchAvailableOrders(
+              lat: driverProvider.workLocationLat ??
+                  driverProvider.driver?.currentLatitude,
+              lng: driverProvider.workLocationLng ??
+                  driverProvider.driver?.currentLongitude,
+            );
       }
     });
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       final driverProvider = context.read<DriverProvider>();
       final rideProvider = context.read<DriverRideProvider>();
+      final parcelProvider = context.read<ParcelDriverProvider>();
       if (driverProvider.isOnline) {
-        driverProvider.fetchAvailableOrders();
+        driverProvider.fetchAvailableOrders(force: true);
+        parcelProvider.fetchAvailableOrders(
+          lat: driverProvider.workLocationLat ??
+              driverProvider.driver?.currentLatitude,
+          lng: driverProvider.workLocationLng ??
+              driverProvider.driver?.currentLongitude,
+          force: true,
+        );
       }
-      // Re-check for existing ride trip on resume
       rideProvider.checkExistingTrip();
+      parcelProvider.checkExistingOrder();
     }
   }
 
@@ -161,13 +221,21 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
         final driverProvider = context.read<DriverProvider>();
         await driverProvider.toggleOnlineStatus();
         final rideProvider = context.read<DriverRideProvider>();
+        final parcelProvider = context.read<ParcelDriverProvider>();
         if (driverProvider.isOnline) {
-          // Always start both polling types since both tabs are visible
           _startBackgroundOrderCheck();
           rideProvider.startOfferPolling();
+          parcelProvider.fetchAvailableOrders(
+            lat: driverProvider.workLocationLat ??
+                driverProvider.driver?.currentLatitude,
+            lng: driverProvider.workLocationLng ??
+                driverProvider.driver?.currentLongitude,
+            force: true,
+          );
         } else {
           _orderCheckTimer?.cancel();
           rideProvider.stopOfferPolling();
+          parcelProvider.clear();
         }
       },
     );
@@ -180,17 +248,18 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
         builder: (context) => OrderDetailsScreen(orderId: order.id),
       ),
     );
-    
+
     if (result == true && mounted) {
-      final driverProvider = Provider.of<DriverProvider>(context, listen: false);
-      await driverProvider.fetchAvailableOrders();
+      final driverProvider =
+          Provider.of<DriverProvider>(context, listen: false);
+      await driverProvider.fetchAvailableOrders(force: true);
     }
   }
 
   void _openActiveDelivery(String orderId) async {
     final driverProvider = Provider.of<DriverProvider>(context, listen: false);
     final orderDetails = driverProvider.activeOrderDetails;
-    
+
     if (orderDetails != null) {
       await Navigator.push(
         context,
@@ -198,10 +267,10 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
           builder: (context) => ActiveDeliveryScreen(order: orderDetails),
         ),
       );
-      
+
       // Refresh orders after returning from active delivery
       if (mounted) {
-        await driverProvider.fetchAvailableOrders();
+        await driverProvider.fetchAvailableOrders(force: true);
       }
     }
   }
@@ -223,7 +292,8 @@ class _DriverHomePageState extends State<DriverHomePage> with WidgetsBindingObse
     );
   }
 
-  void _showLocationPicker(BuildContext context, DriverProvider driverProvider) {
+  void _showLocationPicker(
+      BuildContext context, DriverProvider driverProvider) {
     Navigator.push(
       context,
       MaterialPageRoute(
