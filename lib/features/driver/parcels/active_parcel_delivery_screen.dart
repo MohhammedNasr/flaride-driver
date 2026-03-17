@@ -9,10 +9,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_driver_provider.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_order_model.dart';
 import 'package:flaride_driver/features/driver/parcels/cancel_parcel_dialog.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_rating_screen.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class ActiveParcelDeliveryScreen extends StatefulWidget {
   const ActiveParcelDeliveryScreen({super.key});
@@ -238,6 +240,7 @@ class _ActiveParcelDeliveryScreenState
     return GoogleMap(
       onMapCreated: (controller) {
         _mapController = controller;
+        controller.setMapStyle(FlaRideMapStyle.json);
         _updateMapForOrder();
       },
       initialCameraPosition: CameraPosition(
@@ -875,24 +878,10 @@ class _ActiveParcelDeliveryScreenState
                   _captureAndUploadProof(provider, isPickup: false),
             ),
             const SizedBox(height: 14),
-            if (requiresDropoffProof && !hasDropoffProof)
-              Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.lightGray.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Drop-off photo required before completion',
-                    style: TextStyle(fontSize: 13, color: AppColors.midGray),
-                  ),
-                ),
-              )
-            else
-              _buildSlideToStart(
-                  provider, 'delivered', 'Slide to Complete Delivery'),
+            _buildSlideToStart(
+                provider, 'delivered', 'Slide to Complete Delivery',
+                disabled: requiresDropoffProof && !hasDropoffProof,
+                disabledHint: 'Upload drop-off photo to complete'),
           ],
         ),
       ),
@@ -902,11 +891,14 @@ class _ActiveParcelDeliveryScreenState
   // ── Helper widgets ──
 
   Widget _buildSlideToStart(
-      ParcelDriverProvider provider, String nextStatus, String label) {
+      ParcelDriverProvider provider, String nextStatus, String label,
+      {bool disabled = false, String? disabledHint}) {
     return _SlideToAction(
-      key: ValueKey(nextStatus),
+      key: ValueKey('${nextStatus}_$disabled'),
       label: label,
       isLoading: provider.isLoading,
+      disabled: disabled,
+      disabledHint: disabledHint,
       onSlideComplete: () => _updateStatus(provider, nextStatus),
     );
   }
@@ -1204,14 +1196,9 @@ class _ActiveParcelDeliveryScreenState
     });
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isPickup
-            ? 'Pickup proof photo uploaded.'
-            : 'Drop-off proof photo uploaded.'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    AppToast.success(context, isPickup
+        ? 'Pickup proof photo uploaded.'
+        : 'Drop-off proof photo uploaded.');
   }
 
   Future<XFile?> _pickProofPhotoFromCamera() async {
@@ -1251,9 +1238,7 @@ class _ActiveParcelDeliveryScreenState
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    AppToast.error(context, message);
   }
 
   void _showCancelDialog(ParcelDriverProvider provider) {
@@ -1268,11 +1253,7 @@ class _ActiveParcelDeliveryScreenState
           if (success && mounted) {
             Navigator.pop(context); // Go back to home
           } else if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(provider.error ?? 'Failed to cancel'),
-                  backgroundColor: Colors.red),
-            );
+            AppToast.error(context, provider.error ?? 'Failed to cancel');
           }
         },
         onKeep: () => Navigator.pop(ctx),
@@ -1311,12 +1292,16 @@ class _CapturedProof {
 class _SlideToAction extends StatefulWidget {
   final String label;
   final bool isLoading;
+  final bool disabled;
+  final String? disabledHint;
   final VoidCallback onSlideComplete;
 
   const _SlideToAction({
     super.key,
     required this.label,
     required this.isLoading,
+    this.disabled = false,
+    this.disabledHint,
     required this.onSlideComplete,
   });
 
@@ -1331,6 +1316,30 @@ class _SlideToActionState extends State<_SlideToAction> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.disabled) {
+      return Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.lightGray.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 16, color: AppColors.midGray),
+            const SizedBox(width: 8),
+            Text(
+              widget.disabledHint ?? widget.label,
+              style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.midGray),
+            ),
+          ],
+        ),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         _maxDrag = constraints.maxWidth - 60;

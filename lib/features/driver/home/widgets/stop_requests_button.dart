@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
 import 'package:flaride_driver/core/services/stop_requests_service.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class StopRequestsButton extends StatefulWidget {
   final VoidCallback? onStatusChanged;
@@ -109,22 +110,11 @@ class _StopRequestsButtonState extends State<StopRequestsButton> {
       });
       widget.onStatusChanged?.call();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You are now accepting new requests'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        AppToast.success(context, 'You are now accepting new requests');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -160,26 +150,13 @@ class _StopRequestsButtonState extends State<StopRequestsButton> {
       });
       widget.onStatusChanged?.call();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              autoResumeMinutes != null
-                  ? 'Paused for $autoResumeMinutes minutes'
-                  : 'New requests paused',
-            ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        AppToast.warning(context, autoResumeMinutes != null
+            ? 'Paused for $autoResumeMinutes minutes'
+            : 'New requests paused');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.error(context, 'Error: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _loading = false);

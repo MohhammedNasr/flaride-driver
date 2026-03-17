@@ -6,6 +6,7 @@ import 'package:flaride_driver/core/theme/app_colors.dart';
 import 'package:flaride_driver/core/models/trip.dart';
 import 'package:flaride_driver/core/providers/ride_provider.dart';
 import 'package:flaride_driver/core/services/dispatch_service.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class RideOfferOverlay extends StatefulWidget {
   final RideOffer offer;
@@ -299,9 +300,7 @@ class _RideOfferOverlayState extends State<RideOfferOverlay> with SingleTickerPr
       }
     } else {
       setState(() => _isResponding = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.errorMessage ?? 'Error', style: GoogleFonts.poppins()), backgroundColor: Colors.red),
-      );
+      AppToast.error(context, result.errorMessage ?? 'Error');
     }
   }
 }

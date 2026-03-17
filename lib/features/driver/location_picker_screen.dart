@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/core/services/places_service.dart';
 import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
@@ -163,7 +164,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               target: _selectedLocation,
               zoom: 14,
             ),
-            onMapCreated: (controller) => _mapController = controller,
+            onMapCreated: (controller) {
+              _mapController = controller;
+              controller.setMapStyle(FlaRideMapStyle.json);
+            },
             onTap: (location) {
               setState(() {
                 _selectedLocation = location;

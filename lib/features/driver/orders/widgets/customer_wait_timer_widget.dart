@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flaride_driver/core/services/customer_wait_service.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class CustomerWaitTimerWidget extends StatefulWidget {
   final String orderId;
@@ -124,12 +125,11 @@ class _CustomerWaitTimerWidgetState extends State<CustomerWaitTimerWidget> {
     setState(() => _actionLoading = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: result.success ? AppColors.primaryGreen : Colors.red,
-        ),
-      );
+      if (result.success) {
+        AppToast.success(context, result.message);
+      } else {
+        AppToast.error(context, result.message);
+      }
 
       if (result.success) {
         _loadWaitStatus();

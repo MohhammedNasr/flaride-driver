@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/core/providers/driver_provider.dart';
 import 'package:flaride_driver/core/services/driver_service.dart';
 import 'package:flaride_driver/features/driver/home/widgets/home_online_toggle.dart';
@@ -13,6 +14,7 @@ import 'package:flaride_driver/features/driver/home/widgets/declined_orders_shee
 import 'package:flaride_driver/features/driver/parcels/parcel_driver_provider.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_order_model.dart';
 import 'package:flaride_driver/features/driver/parcels/active_parcel_delivery_screen.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class MapHomeScreen extends StatefulWidget {
   final VoidCallback onLocationTap;
@@ -119,6 +121,7 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    controller.setMapStyle(FlaRideMapStyle.json);
 
     // Move to work location if set
     final driverProvider = context.read<DriverProvider>();
@@ -1556,19 +1559,9 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
     final success = await parcelProvider.acceptOrder(order.id);
     if (success && mounted) {
       // Home page listener handles navigation to avoid duplicate route stacking.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Parcel order accepted'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      AppToast.success(context, 'Parcel order accepted');
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(parcelProvider.error ?? 'Failed to accept order'),
-            backgroundColor: Colors.red),
-      );
+      AppToast.error(context, parcelProvider.error ?? 'Failed to accept order');
     }
   }
 

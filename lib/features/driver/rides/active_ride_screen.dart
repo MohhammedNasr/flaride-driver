@@ -6,9 +6,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/core/models/trip.dart';
 import 'package:flaride_driver/core/services/dispatch_service.dart';
 import 'package:flaride_driver/core/services/directions_service.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 import 'package:flaride_driver/features/driver/trips/customer_rating_screen.dart';
 
 class ActiveRideScreen extends StatefulWidget {
@@ -198,6 +200,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    controller.setMapStyle(FlaRideMapStyle.json);
     _fitMapBounds();
   }
 
@@ -779,9 +782,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg, style: GoogleFonts.poppins()), backgroundColor: Colors.red),
-    );
+    AppToast.error(context, msg);
   }
 
   // ── Shared Widgets ─────────────────────────────────────────────────

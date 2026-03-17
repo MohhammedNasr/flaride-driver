@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/core/services/places_service.dart';
 
 class MapLocationPicker extends StatefulWidget {
@@ -116,6 +117,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    controller.setMapStyle(FlaRideMapStyle.json);
   }
   
   void _searchPlaces(String query) async {

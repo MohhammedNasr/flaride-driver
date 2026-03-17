@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class GoogleMapWidget extends StatefulWidget {
@@ -115,10 +116,8 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
     
-    // Apply custom map style if provided
-    if (widget.mapStyle != null) {
-      controller.setMapStyle(widget.mapStyle);
-    }
+    // Apply custom map style (use FlaRide branded style by default)
+    controller.setMapStyle(widget.mapStyle ?? FlaRideMapStyle.json);
     
     // Call the provided callback
     widget.onMapCreated?.call(controller);

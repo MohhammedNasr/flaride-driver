@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
+import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/core/providers/driver_provider.dart';
 import 'package:flaride_driver/core/providers/ride_provider.dart';
 import 'package:flaride_driver/features/driver/rides/ride_driver_apply_screen.dart';
@@ -49,7 +50,7 @@ class _TripsTabScreenState extends State<TripsTabScreen> {
 
       final on = dp.isOnline;
       return Stack(fit: StackFit.expand, children: [
-        GoogleMap(onMapCreated: (c) { _mapController = c; c.animateCamera(CameraUpdate.newLatLngZoom(_pos, 15)); }, initialCameraPosition: CameraPosition(target: _pos, zoom: 15), myLocationEnabled: true, myLocationButtonEnabled: false, zoomControlsEnabled: false, compassEnabled: false, mapToolbarEnabled: false),
+        GoogleMap(onMapCreated: (c) { _mapController = c; c.setMapStyle(FlaRideMapStyle.json); c.animateCamera(CameraUpdate.newLatLngZoom(_pos, 15)); }, initialCameraPosition: CameraPosition(target: _pos, zoom: 15), myLocationEnabled: true, myLocationButtonEnabled: false, zoomControlsEnabled: false, compassEnabled: false, mapToolbarEnabled: false),
         if (!on) _offline(),
         if (on && rp.state == DriverRideState.idle) _searching(),
         Positioned(bottom: 32, left: 0, right: 0, child: Center(child: _goBtn(on))),

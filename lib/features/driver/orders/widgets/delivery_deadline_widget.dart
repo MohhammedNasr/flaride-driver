@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
 import 'package:flaride_driver/core/services/delivery_deadline_service.dart';
+import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class DeliveryDeadlineWidget extends StatefulWidget {
   final String orderId;
@@ -376,14 +377,11 @@ class _DeliveryDeadlineWidgetState extends State<DeliveryDeadlineWidget> {
     if (confirmed == true) {
       final success = await _service.notifyDelay(widget.orderId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? 'Customer notified' : 'Failed to notify customer',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
+        if (success) {
+          AppToast.success(context, 'Customer notified');
+        } else {
+          AppToast.error(context, 'Failed to notify customer');
+        }
       }
     }
   }
