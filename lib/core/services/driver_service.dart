@@ -189,6 +189,48 @@ class DriverService {
     }
   }
 
+  /// Update order type preferences
+  Future<DriverUpdateResponse> updateOrderPreferences({
+    required bool acceptsFoodDelivery,
+    required bool acceptsRideRequests,
+    required bool acceptsParcelDelivery,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        return DriverUpdateResponse(
+            success: false, message: 'Not authenticated');
+      }
+
+      final body = {
+        'accepts_food_delivery': acceptsFoodDelivery,
+        'accepts_ride_requests': acceptsRideRequests,
+        'accepts_parcel_delivery': acceptsParcelDelivery,
+      };
+
+      final response = await http.put(
+        Uri.parse('$_baseApiUrl/driver/profile'),
+        headers: {
+          ...ApiConfig.defaultHeaders,
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200) {
+        return DriverUpdateResponse(success: true);
+      } else {
+        final data = json.decode(response.body);
+        return DriverUpdateResponse(
+          success: false,
+          message: data['error'] ?? 'Failed to update preferences',
+        );
+      }
+    } catch (e) {
+      return DriverUpdateResponse(success: false, message: 'Network error: $e');
+    }
+  }
+
   /// Update personal profile info
   Future<bool> updateProfile({
     String? fullName,
@@ -199,6 +241,12 @@ class DriverService {
     String? nationalIdFrontUrl,
     String? nationalIdBackUrl,
     String? vehicleRegistrationUrl,
+    String? vehicleInsuranceUrl,
+    String? vehiclePhotoFrontUrl,
+    String? vehiclePhotoRearUrl,
+    String? vehiclePhotoInteriorUrl,
+    String? insuranceCertificateUrl,
+    String? inspectionCertificateUrl,
   }) async {
     try {
       final token = await _getToken();
@@ -218,6 +266,18 @@ class DriverService {
         body['national_id_back_url'] = nationalIdBackUrl;
       if (vehicleRegistrationUrl != null)
         body['vehicle_registration_url'] = vehicleRegistrationUrl;
+      if (vehicleInsuranceUrl != null)
+        body['vehicle_insurance_url'] = vehicleInsuranceUrl;
+      if (vehiclePhotoFrontUrl != null)
+        body['vehicle_photo_front_url'] = vehiclePhotoFrontUrl;
+      if (vehiclePhotoRearUrl != null)
+        body['vehicle_photo_rear_url'] = vehiclePhotoRearUrl;
+      if (vehiclePhotoInteriorUrl != null)
+        body['vehicle_photo_interior_url'] = vehiclePhotoInteriorUrl;
+      if (insuranceCertificateUrl != null)
+        body['insurance_certificate_url'] = insuranceCertificateUrl;
+      if (inspectionCertificateUrl != null)
+        body['inspection_certificate_url'] = inspectionCertificateUrl;
 
       debugPrint('DriverService.updateProfile: Sending $body');
       final response = await http.put(

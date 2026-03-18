@@ -8,6 +8,7 @@ import 'package:flaride_driver/core/providers/ride_provider.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_driver_provider.dart';
 import 'package:flaride_driver/features/auth/screens/login_screen.dart';
 import 'package:flaride_driver/features/driver/driver_home_page.dart';
+import 'package:flaride_driver/features/driver/driver_set_password_screen.dart';
 import 'package:flaride_driver/features/splash/splash_screen.dart';
 import 'package:flaride_driver/features/onboarding/onboarding_screen.dart';
 import 'package:provider/provider.dart';
@@ -121,6 +122,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
           if (user != null && user['role'] == 'driver') {
             print('AuthWrapper: Session valid, user is driver');
             
+            // Check if driver must change password
+            final mustChangePassword = user['must_change_password'] == true;
+            print('AuthWrapper: must_change_password = $mustChangePassword');
+            
+            if (mustChangePassword) {
+              // Also update the AuthProvider state
+              if (mounted) {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                authProvider.setMustChangePasswordFromSession(true);
+              }
+              setState(() {
+                _isAuthenticated = true;
+                _flowState = AppFlowState.changePassword;
+              });
+              return;
+            }
+            
             // Initialize driver provider
             if (mounted) {
               final driverProvider = Provider.of<DriverProvider>(context, listen: false);
@@ -186,6 +204,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
       case AppFlowState.login:
         return const DriverLoginScreen();
         
+      case AppFlowState.changePassword:
+        return const DriverSetPasswordScreen();
+        
       case AppFlowState.home:
         return const DriverHomePage();
     }
@@ -196,6 +217,7 @@ enum AppFlowState {
   splash,
   onboarding,
   login,
+  changePassword,
   home,
   error,
 }

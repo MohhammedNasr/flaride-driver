@@ -17,7 +17,13 @@ enum DocumentType {
   nationalIdFront,
   nationalIdBack,
   vehiclePhoto,
+  vehiclePhotoFront,
+  vehiclePhotoRear,
+  vehiclePhotoInterior,
   vehicleRegistration,
+  vehicleInsurance,
+  insuranceCertificate,
+  inspectionCertificate,
 }
 
 enum DeliveryPhotoType {
@@ -54,8 +60,20 @@ class UploadService {
         return 'national_id_back';
       case DocumentType.vehiclePhoto:
         return 'vehicle_photo';
+      case DocumentType.vehiclePhotoFront:
+        return 'vehicle_photo_front';
+      case DocumentType.vehiclePhotoRear:
+        return 'vehicle_photo_rear';
+      case DocumentType.vehiclePhotoInterior:
+        return 'vehicle_photo_interior';
       case DocumentType.vehicleRegistration:
         return 'vehicle_registration';
+      case DocumentType.vehicleInsurance:
+        return 'vehicle_insurance';
+      case DocumentType.insuranceCertificate:
+        return 'insurance_certificate';
+      case DocumentType.inspectionCertificate:
+        return 'inspection_certificate';
     }
   }
 
@@ -278,6 +296,24 @@ class UploadService {
           break;
         case DocumentType.vehicleRegistration:
           await driverService.updateProfile(vehicleRegistrationUrl: result.url);
+          break;
+        case DocumentType.vehicleInsurance:
+          await driverService.updateProfile(vehicleInsuranceUrl: result.url);
+          break;
+        case DocumentType.vehiclePhotoFront:
+          await driverService.updateProfile(vehiclePhotoFrontUrl: result.url);
+          break;
+        case DocumentType.vehiclePhotoRear:
+          await driverService.updateProfile(vehiclePhotoRearUrl: result.url);
+          break;
+        case DocumentType.vehiclePhotoInterior:
+          await driverService.updateProfile(vehiclePhotoInteriorUrl: result.url);
+          break;
+        case DocumentType.insuranceCertificate:
+          await driverService.updateProfile(insuranceCertificateUrl: result.url);
+          break;
+        case DocumentType.inspectionCertificate:
+          await driverService.updateProfile(inspectionCertificateUrl: result.url);
           break;
         default:
           break;

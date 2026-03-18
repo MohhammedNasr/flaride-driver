@@ -43,8 +43,14 @@ class Driver {
   final String? nationalIdFrontUrl;
   final String? nationalIdBackUrl;
   final String? vehiclePhotoUrl;
+  final String? vehiclePhotoFrontUrl;
+  final String? vehiclePhotoRearUrl;
+  final String? vehiclePhotoInteriorUrl;
   final String? vehicleRegistrationUrl;
   final String? vehicleInsuranceUrl;
+  final String? insuranceCertificateUrl;
+  final String? inspectionCertificateUrl;
+  final bool documentsApproved;
   
   // Stats
   final double acceptanceRate;
@@ -68,6 +74,11 @@ class Driver {
   final String? rideApplicationStatus; // 'pending_review', 'approved', 'rejected'
   final bool isRideDriver;             // approved for rides
   final bool isDeliveryDriver;         // approved for delivery
+  
+  // Order type preferences
+  final bool acceptsFoodDelivery;
+  final bool acceptsRideRequests;
+  final bool acceptsParcelDelivery;
   
   // Settings
   final double maxDeliveryDistanceKm;
@@ -114,8 +125,14 @@ class Driver {
     this.nationalIdFrontUrl,
     this.nationalIdBackUrl,
     this.vehiclePhotoUrl,
+    this.vehiclePhotoFrontUrl,
+    this.vehiclePhotoRearUrl,
+    this.vehiclePhotoInteriorUrl,
     this.vehicleRegistrationUrl,
     this.vehicleInsuranceUrl,
+    this.insuranceCertificateUrl,
+    this.inspectionCertificateUrl,
+    this.documentsApproved = false,
     this.acceptanceRate = 100.0,
     this.completionRate = 100.0,
     this.averageRating = 0.0,
@@ -133,6 +150,9 @@ class Driver {
     this.rideApplicationStatus,
     this.isRideDriver = false,
     this.isDeliveryDriver = true,
+    this.acceptsFoodDelivery = true,
+    this.acceptsRideRequests = false,
+    this.acceptsParcelDelivery = true,
     this.maxDeliveryDistanceKm = 15.0,
     this.preferredWorkAreas,
     this.bankName,
@@ -179,8 +199,14 @@ class Driver {
       nationalIdFrontUrl: json['national_id_front_url'],
       nationalIdBackUrl: json['national_id_back_url'],
       vehiclePhotoUrl: json['vehicle_photo_url'],
+      vehiclePhotoFrontUrl: json['vehicle_photo_front_url'],
+      vehiclePhotoRearUrl: json['vehicle_photo_rear_url'],
+      vehiclePhotoInteriorUrl: json['vehicle_photo_interior_url'],
       vehicleRegistrationUrl: json['vehicle_registration_url'],
       vehicleInsuranceUrl: json['vehicle_insurance_url'],
+      insuranceCertificateUrl: json['insurance_certificate_url'],
+      inspectionCertificateUrl: json['inspection_certificate_url'],
+      documentsApproved: json['documents_approved'] ?? false,
       acceptanceRate: (json['acceptance_rate'] as num?)?.toDouble() ?? 100.0,
       completionRate: (json['completion_rate'] as num?)?.toDouble() ?? 100.0,
       averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0.0,
@@ -198,6 +224,9 @@ class Driver {
       rideApplicationStatus: json['ride_application_status'],
       isRideDriver: json['is_ride_driver'] ?? false,
       isDeliveryDriver: json['is_delivery_driver'] ?? true,
+      acceptsFoodDelivery: json['accepts_food_delivery'] ?? true,
+      acceptsRideRequests: json['accepts_ride_requests'] ?? false,
+      acceptsParcelDelivery: json['accepts_parcel_delivery'] ?? true,
       maxDeliveryDistanceKm: (json['max_delivery_distance_km'] as num?)?.toDouble() ?? 15.0,
       preferredWorkAreas: json['preferred_work_areas'],
       bankName: json['bank_name'],
@@ -255,8 +284,14 @@ class Driver {
     String? nationalIdFrontUrl,
     String? nationalIdBackUrl,
     String? vehiclePhotoUrl,
+    String? vehiclePhotoFrontUrl,
+    String? vehiclePhotoRearUrl,
+    String? vehiclePhotoInteriorUrl,
     String? vehicleRegistrationUrl,
     String? vehicleInsuranceUrl,
+    String? insuranceCertificateUrl,
+    String? inspectionCertificateUrl,
+    bool? documentsApproved,
     double? acceptanceRate,
     double? completionRate,
     double? averageRating,
@@ -274,6 +309,9 @@ class Driver {
     String? rideApplicationStatus,
     bool? isRideDriver,
     bool? isDeliveryDriver,
+    bool? acceptsFoodDelivery,
+    bool? acceptsRideRequests,
+    bool? acceptsParcelDelivery,
     double? maxDeliveryDistanceKm,
     String? preferredWorkAreas,
     String? bankName,
@@ -314,8 +352,14 @@ class Driver {
       nationalIdFrontUrl: nationalIdFrontUrl ?? this.nationalIdFrontUrl,
       nationalIdBackUrl: nationalIdBackUrl ?? this.nationalIdBackUrl,
       vehiclePhotoUrl: vehiclePhotoUrl ?? this.vehiclePhotoUrl,
+      vehiclePhotoFrontUrl: vehiclePhotoFrontUrl ?? this.vehiclePhotoFrontUrl,
+      vehiclePhotoRearUrl: vehiclePhotoRearUrl ?? this.vehiclePhotoRearUrl,
+      vehiclePhotoInteriorUrl: vehiclePhotoInteriorUrl ?? this.vehiclePhotoInteriorUrl,
       vehicleRegistrationUrl: vehicleRegistrationUrl ?? this.vehicleRegistrationUrl,
       vehicleInsuranceUrl: vehicleInsuranceUrl ?? this.vehicleInsuranceUrl,
+      insuranceCertificateUrl: insuranceCertificateUrl ?? this.insuranceCertificateUrl,
+      inspectionCertificateUrl: inspectionCertificateUrl ?? this.inspectionCertificateUrl,
+      documentsApproved: documentsApproved ?? this.documentsApproved,
       acceptanceRate: acceptanceRate ?? this.acceptanceRate,
       completionRate: completionRate ?? this.completionRate,
       averageRating: averageRating ?? this.averageRating,
@@ -333,6 +377,9 @@ class Driver {
       rideApplicationStatus: rideApplicationStatus ?? this.rideApplicationStatus,
       isRideDriver: isRideDriver ?? this.isRideDriver,
       isDeliveryDriver: isDeliveryDriver ?? this.isDeliveryDriver,
+      acceptsFoodDelivery: acceptsFoodDelivery ?? this.acceptsFoodDelivery,
+      acceptsRideRequests: acceptsRideRequests ?? this.acceptsRideRequests,
+      acceptsParcelDelivery: acceptsParcelDelivery ?? this.acceptsParcelDelivery,
       maxDeliveryDistanceKm: maxDeliveryDistanceKm ?? this.maxDeliveryDistanceKm,
       preferredWorkAreas: preferredWorkAreas ?? this.preferredWorkAreas,
       bankName: bankName ?? this.bankName,

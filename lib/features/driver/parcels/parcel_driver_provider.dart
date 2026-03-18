@@ -144,7 +144,8 @@ class ParcelDriverProvider extends ChangeNotifier {
       String? dropoffProofTakenAt,
       double? dropoffProofTakenLat,
       double? dropoffProofTakenLng,
-      bool? dropoffOtpVerified}) async {
+      bool? dropoffOtpVerified,
+      String? dropoffOtpCode}) async {
     if (_activeOrder == null || _isLoading) return false;
     if (_activeOrder!.status == newStatus) return true;
 
@@ -179,6 +180,7 @@ class ParcelDriverProvider extends ChangeNotifier {
       dropoffProofTakenLat: dropoffProofTakenLat,
       dropoffProofTakenLng: dropoffProofTakenLng,
       dropoffOtpVerified: dropoffOtpVerified,
+      dropoffOtpCode: dropoffOtpCode,
     );
 
     _isLoading = false;

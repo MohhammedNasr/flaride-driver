@@ -13,6 +13,7 @@ import 'package:flaride_driver/features/driver/profile/screens/vehicle_info_scre
 import 'package:flaride_driver/features/driver/profile/screens/documents_screen.dart';
 import 'package:flaride_driver/features/driver/profile/screens/payment_settings_screen.dart';
 import 'package:flaride_driver/features/driver/profile/screens/settings_screen.dart';
+import 'package:flaride_driver/features/driver/profile/screens/order_preferences_screen.dart';
 import 'package:flaride_driver/features/driver/profile/screens/help_support_screen.dart';
 import 'package:flaride_driver/features/driver/profile/screens/ratings_reviews_screen.dart';
 import 'package:flaride_driver/app/app.dart' show signOutAndNavigateToLogin;
@@ -187,7 +188,7 @@ class DriverAccountTab extends StatelessWidget {
                         height: 1, thickness: 1, color: AppColors.dividerGray),
                     ProfileMenuItem(
                       icon: Icons.description_outlined,
-                      title: 'Documents Section',
+                      title: 'Documents',
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const DocumentsScreen()),
@@ -201,6 +202,16 @@ class DriverAccountTab extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const PaymentSettingsScreen()),
+                      ),
+                    ),
+                    const Divider(
+                        height: 1, thickness: 1, color: AppColors.dividerGray),
+                    ProfileMenuItem(
+                      icon: Icons.tune_outlined,
+                      title: 'Order Preferences',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const OrderPreferencesScreen()),
                       ),
                     ),
                     const Divider(

@@ -13,7 +13,7 @@ import 'package:flaride_driver/core/theme/map_style.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_driver_provider.dart';
 import 'package:flaride_driver/features/driver/parcels/parcel_order_model.dart';
 import 'package:flaride_driver/features/driver/parcels/cancel_parcel_dialog.dart';
-import 'package:flaride_driver/features/driver/parcels/parcel_rating_screen.dart';
+import 'package:flaride_driver/features/driver/parcels/parcel_trip_completed_screen.dart';
 import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class ActiveParcelDeliveryScreen extends StatefulWidget {
@@ -39,6 +39,10 @@ class _ActiveParcelDeliveryScreenState
   _CapturedProof? _capturedDropoffProof;
   bool _isUploadingPickupProof = false;
   bool _isUploadingDropoffProof = false;
+  final List<TextEditingController> _pinControllers =
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _pinFocusNodes = List.generate(6, (_) => FocusNode());
+  String _enteredPin = '';
 
   @override
   void initState() {
@@ -50,6 +54,12 @@ class _ActiveParcelDeliveryScreenState
   void dispose() {
     _locationSub?.cancel();
     _mapController?.dispose();
+    for (final c in _pinControllers) {
+      c.dispose();
+    }
+    for (final f in _pinFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -345,9 +355,11 @@ class _ActiveParcelDeliveryScreenState
         _hasNavigatedToRating = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
+          // Skip rating screen for package deliveries — go straight to trip completed
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => ParcelRatingScreen(order: order)),
+            MaterialPageRoute(
+                builder: (_) => ParcelTripCompletedScreen(order: order)),
           );
         });
       }
@@ -878,14 +890,136 @@ class _ActiveParcelDeliveryScreenState
                   _captureAndUploadProof(provider, isPickup: false),
             ),
             const SizedBox(height: 14),
+            _buildPinEntryCard(),
+            const SizedBox(height: 14),
             _buildSlideToStart(
                 provider, 'delivered', 'Slide to Complete Delivery',
-                disabled: requiresDropoffProof && !hasDropoffProof,
-                disabledHint: 'Upload drop-off photo to complete'),
+                disabled: (requiresDropoffProof && !hasDropoffProof) ||
+                    _enteredPin.length < 6,
+                disabledHint: _enteredPin.length < 6
+                    ? 'Enter the 6-digit delivery PIN'
+                    : 'Upload drop-off photo to complete'),
           ],
         ),
       ),
     );
+  }
+
+  // ── PIN Entry Card ──
+
+  Widget _buildPinEntryCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryOrange.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primaryOrange.withOpacity(0.25)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lock_outline, size: 20, color: AppColors.primaryOrange),
+              const SizedBox(width: 8),
+              Text('Enter Delivery PIN',
+                  style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkGray)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Ask the recipient for the 6-character PIN code',
+            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.midGray),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(6, (index) {
+              return Container(
+                width: 42,
+                height: 50,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                child: TextField(
+                  controller: _pinControllers[index],
+                  focusNode: _pinFocusNodes[index],
+                  textAlign: TextAlign.center,
+                  maxLength: 1,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    UpperCaseTextFormatter(),
+                  ],
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkGray,
+                  ),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          color: AppColors.primaryOrange.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          color: AppColors.primaryOrange.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                          color: AppColors.primaryOrange, width: 2),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    if (value.isNotEmpty && index < 5) {
+                      _pinFocusNodes[index + 1].requestFocus();
+                    } else if (value.isEmpty && index > 0) {
+                      _pinFocusNodes[index - 1].requestFocus();
+                    }
+                    _updateEnteredPin();
+                  },
+                  onTap: () {
+                    _pinControllers[index].selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: _pinControllers[index].text.length,
+                    );
+                  },
+                ),
+              );
+            }),
+          ),
+          if (_enteredPin.length == 6)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, size: 16, color: AppColors.primaryGreen),
+                  const SizedBox(width: 4),
+                  Text('PIN entered',
+                      style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primaryGreen)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _updateEnteredPin() {
+    final pin =
+        _pinControllers.map((c) => c.text).join().toUpperCase().trim();
+    setState(() => _enteredPin = pin);
   }
 
   // ── Helper widgets ──
@@ -1137,6 +1271,9 @@ class _ActiveParcelDeliveryScreenState
       dropoffProofTakenAt: _capturedDropoffProof?.takenAt.toIso8601String(),
       dropoffProofTakenLat: _capturedDropoffProof?.lat,
       dropoffProofTakenLng: _capturedDropoffProof?.lng,
+      dropoffOtpCode: newStatus == 'delivered' && _enteredPin.isNotEmpty
+          ? _enteredPin
+          : null,
     );
     if (!success && mounted) {
       _showError(provider.error ?? 'Failed to update status');
@@ -1433,6 +1570,17 @@ class _SlideToActionState extends State<_SlideToAction> {
           ),
         );
       },
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

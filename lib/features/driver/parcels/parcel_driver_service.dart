@@ -127,6 +127,7 @@ class ParcelDriverService {
     double? dropoffProofTakenLat,
     double? dropoffProofTakenLng,
     bool? dropoffOtpVerified,
+    String? dropoffOtpCode,
   }) async {
     try {
       final body = <String, dynamic>{'status': newStatus};
@@ -159,6 +160,8 @@ class ParcelDriverService {
         body['dropoff_proof_taken_lng'] = dropoffProofTakenLng;
       if (dropoffOtpVerified != null)
         body['dropoff_otp_verified'] = dropoffOtpVerified;
+      if (dropoffOtpCode != null)
+        body['dropoff_otp_code'] = dropoffOtpCode;
 
       final res = await http
           .patch(

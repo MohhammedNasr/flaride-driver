@@ -223,6 +223,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Called by AuthWrapper when session restoration detects must_change_password from /auth/me
+  void setMustChangePasswordFromSession(bool value) {
+    _mustChangePassword = value;
+    notifyListeners();
+  }
+
   Future<void> markOnboardingCompleted() async {
     final userId = _user?['id'] as String?;
     await _stateManager.setOnboardingStatus(userId, true);

@@ -238,9 +238,40 @@ class DriverProvider extends ChangeNotifier {
     }
   }
 
+  /// Check if all required documents are uploaded
+  bool get areDocumentsComplete {
+    if (_driver == null) return false;
+    return _driver!.driverLicenseFrontUrl != null &&
+        _driver!.nationalIdFrontUrl != null &&
+        _driver!.vehicleRegistrationUrl != null &&
+        (_driver!.insuranceCertificateUrl != null || _driver!.vehicleInsuranceUrl != null) &&
+        _driver!.vehiclePhotoFrontUrl != null &&
+        _driver!.inspectionCertificateUrl != null;
+  }
+
+  /// Get list of missing document names
+  List<String> get missingDocuments {
+    if (_driver == null) return ['All documents'];
+    final missing = <String>[];
+    if (_driver!.driverLicenseFrontUrl == null) missing.add('Driver License');
+    if (_driver!.nationalIdFrontUrl == null) missing.add('National ID');
+    if (_driver!.vehicleRegistrationUrl == null) missing.add('Vehicle Registration');
+    if (_driver!.insuranceCertificateUrl == null && _driver!.vehicleInsuranceUrl == null) missing.add('Insurance Certificate');
+    if (_driver!.vehiclePhotoFrontUrl == null) missing.add('Vehicle Photo (Front)');
+    if (_driver!.inspectionCertificateUrl == null) missing.add('Inspection Certificate');
+    return missing;
+  }
+
   /// Go online - start accepting orders
   Future<bool> goOnline() async {
     if (_driver == null) return false;
+
+    // Check documents before going online
+    if (!areDocumentsComplete) {
+      _error = 'Please upload all required documents before going online. Missing: ${missingDocuments.join(", ")}';
+      notifyListeners();
+      return false;
+    }
 
     _isLoading = true;
     notifyListeners();
@@ -550,6 +581,47 @@ class DriverProvider extends ChangeNotifier {
   void _stopOrdersPolling() {
     _ordersTimer?.cancel();
     _ordersTimer = null;
+  }
+
+  /// Update order type preferences
+  Future<bool> updateOrderPreferences({
+    required bool acceptsFoodDelivery,
+    required bool acceptsRideRequests,
+    required bool acceptsParcelDelivery,
+  }) async {
+    if (_driver == null) return false;
+
+    try {
+      final response = await _driverService.updateOrderPreferences(
+        acceptsFoodDelivery: acceptsFoodDelivery,
+        acceptsRideRequests: acceptsRideRequests,
+        acceptsParcelDelivery: acceptsParcelDelivery,
+      );
+
+      if (response.success) {
+        _driver = _driver!.copyWith(
+          acceptsFoodDelivery: acceptsFoodDelivery,
+          acceptsRideRequests: acceptsRideRequests,
+          acceptsParcelDelivery: acceptsParcelDelivery,
+        );
+        notifyListeners();
+
+        // Refresh available orders with new preferences
+        if (isOnline) {
+          await fetchAvailableOrders(force: true);
+        }
+        return true;
+      } else {
+        _error = response.message;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Update order preferences error: $e');
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Clear driver state (on logout)

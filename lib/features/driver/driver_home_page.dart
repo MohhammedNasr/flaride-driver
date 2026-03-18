@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
@@ -18,6 +19,7 @@ import 'package:flaride_driver/features/driver/widgets/driver_bottom_nav.dart';
 import 'package:flaride_driver/features/driver/location_picker_screen.dart';
 import 'package:flaride_driver/features/driver/tabs/earnings_tab.dart';
 import 'package:flaride_driver/features/driver/orders/screens/order_history_screen.dart';
+import 'package:flaride_driver/features/driver/profile/screens/documents_screen.dart';
 import 'package:flaride_driver/shared/widgets/app_toast.dart';
 
 class DriverHomePage extends StatefulWidget {
@@ -219,7 +221,15 @@ class _DriverHomePageState extends State<DriverHomePage>
       onActiveOrderTap: _openActiveDelivery,
       onToggleOnline: () async {
         final driverProvider = context.read<DriverProvider>();
+        final wasOnline = driverProvider.isOnline;
         await driverProvider.toggleOnlineStatus();
+        // Show popup dialog if going online failed due to missing documents
+        if (!wasOnline && !driverProvider.isOnline && driverProvider.error != null) {
+          if (mounted) {
+            _showMissingDocumentsDialog(driverProvider.missingDocuments);
+          }
+          return;
+        }
         final rideProvider = context.read<DriverRideProvider>();
         final parcelProvider = context.read<ParcelDriverProvider>();
         if (driverProvider.isOnline) {
@@ -319,6 +329,94 @@ class _DriverHomePageState extends State<DriverHomePage>
               AppToast.success(context, 'Work location updated!');
             }
           },
+        ),
+      ),
+    );
+  }
+
+  void _showMissingDocumentsDialog(List<String> missingDocs) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryOrange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.description_outlined, size: 32, color: AppColors.primaryOrange),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Documents Required',
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.darkGray),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please upload the following documents before going online:',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 13, color: AppColors.midGray),
+              ),
+              const SizedBox(height: 16),
+              ...missingDocs.map((doc) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.close_rounded, size: 14, color: Colors.red),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        doc,
+                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.darkGray),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentsScreen()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Upload Documents', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Later', style: GoogleFonts.poppins(fontSize: 14, color: AppColors.midGray)),
+              ),
+            ],
+          ),
         ),
       ),
     );

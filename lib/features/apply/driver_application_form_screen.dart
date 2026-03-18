@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
 import 'package:flaride_driver/core/config/api_config.dart';
 import 'package:flaride_driver/shared/widgets/custom_text_field.dart';
@@ -48,6 +50,19 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
   final _mobileMoneyNumberController = TextEditingController();
   final _bankNameController = TextEditingController();
   final _bankAccountController = TextEditingController();
+
+  // Document files
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _driverLicenseFrontFile;
+  File? _driverLicenseBackFile;
+  File? _nationalIdFrontFile;
+  File? _nationalIdBackFile;
+  File? _vehicleRegistrationFile;
+  File? _insuranceCertificateFile;
+  File? _vehiclePhotoFrontFile;
+  File? _vehiclePhotoRearFile;
+  File? _vehiclePhotoInteriorFile;
+  File? _inspectionCertificateFile;
 
   // Agreements
   bool _agreedToTerms = false;
@@ -156,6 +171,26 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
         }
       }
     } else if (step == 2) {
+      // Documents validation
+      if (_driverLicenseFrontFile == null) {
+        errors['driverLicenseFront'] = 'Driver license (front) is required';
+      }
+      if (_nationalIdFrontFile == null) {
+        errors['nationalIdFront'] = 'National ID (front) is required';
+      }
+      if (_vehicleRegistrationFile == null) {
+        errors['vehicleRegistration'] = 'Vehicle registration is required';
+      }
+      if (_insuranceCertificateFile == null) {
+        errors['insuranceCertificate'] = 'Insurance certificate is required';
+      }
+      if (_vehiclePhotoFrontFile == null) {
+        errors['vehiclePhotoFront'] = 'Vehicle photo (front) is required';
+      }
+      if (_inspectionCertificateFile == null) {
+        errors['inspectionCertificate'] = 'Inspection certificate is required';
+      }
+    } else if (step == 3) {
       // Payment Info validation
       if (_mobileMoneyProvider == null && _bankNameController.text.trim().isEmpty) {
         errors['payment'] = 'Please provide at least one payment method';
@@ -166,7 +201,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
       if (_bankNameController.text.trim().isNotEmpty && _bankAccountController.text.trim().isEmpty) {
         errors['bankAccount'] = 'Bank account number is required';
       }
-    } else if (step == 3) {
+    } else if (step == 4) {
       // Review & Submit validation
       if (!_agreedToTerms) {
         errors['terms'] = 'You must agree to the terms of service';
@@ -226,7 +261,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
       if (!isValid) return;
     }
 
-    if (_currentStep < 3) {
+    if (_currentStep < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -243,8 +278,30 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
     }
   }
 
+  Future<String?> _uploadFile(File file, String folder, String filename) async {
+    try {
+      final uri = Uri.parse('${ApiConfig.apiBaseUrl}/public/upload');
+      final request = http.MultipartRequest('POST', uri);
+      request.fields['folder'] = folder;
+      request.fields['filename'] = filename;
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['url'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Upload error for $filename: $e');
+      return null;
+    }
+  }
+
   Future<void> _submitApplication() async {
-    if (!_validateStep(3)) return;
+    if (!_validateStep(4)) return;
 
     setState(() {
       _isSubmitting = true;
@@ -252,6 +309,36 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
     });
 
     try {
+      // Upload all document files
+      final folder = 'applications/${_emailController.text.trim().replaceAll('@', '_')}';
+      final uploads = <String, File?>{
+        'driver_license_front': _driverLicenseFrontFile,
+        'driver_license_back': _driverLicenseBackFile,
+        'national_id_front': _nationalIdFrontFile,
+        'national_id_back': _nationalIdBackFile,
+        'vehicle_registration': _vehicleRegistrationFile,
+        'insurance_certificate': _insuranceCertificateFile,
+        'vehicle_photo_front': _vehiclePhotoFrontFile,
+        'vehicle_photo_rear': _vehiclePhotoRearFile,
+        'vehicle_photo_interior': _vehiclePhotoInteriorFile,
+        'inspection_certificate': _inspectionCertificateFile,
+      };
+
+      final documentUrls = <String, String?>{};
+      for (final entry in uploads.entries) {
+        if (entry.value != null) {
+          final url = await _uploadFile(entry.value!, folder, entry.key);
+          if (url != null) {
+            documentUrls['${entry.key}_url'] = url;
+          } else {
+            setState(() {
+              _submitError = 'Failed to upload ${entry.key.replaceAll('_', ' ')}. Please try again.';
+            });
+            return;
+          }
+        }
+      }
+
       final applicationData = {
         'full_name': _fullNameController.text.trim(),
         'email': _emailController.text.trim(),
@@ -277,6 +364,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
         'agreed_to_terms': _agreedToTerms,
         'agreed_to_privacy_policy': _agreedToPrivacy,
         'how_did_you_hear': _howDidYouHear,
+        ...documentUrls,
       };
 
       final response = await http.post(
@@ -352,6 +440,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
                   children: [
                     _buildPersonalInfoStep(),
                     _buildVehicleInfoStep(),
+                    _buildDocumentsStep(),
                     _buildPaymentInfoStep(),
                     _buildReviewStep(),
                   ],
@@ -367,7 +456,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
   }
 
   Widget _buildStepIndicator() {
-    final steps = ['Personal', 'Vehicle', 'Payment', 'Review'];
+    final steps = ['Personal', 'Vehicle', 'Docs', 'Payment', 'Review'];
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(
@@ -591,6 +680,230 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
     );
   }
 
+  Future<void> _pickAndSetFile(String key, Function(File) setter) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final XFile? pickedFile = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        setter(File(pickedFile.path));
+        _errors.remove(key);
+      });
+    }
+  }
+
+  Widget _buildDocumentUploadCard({
+    required String label,
+    required String errorKey,
+    required File? file,
+    required Function(File) onPicked,
+    bool required = false,
+  }) {
+    final hasError = _errors[errorKey] != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => _pickAndSetFile(errorKey, onPicked),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasError ? Colors.red : (file != null ? AppColors.primaryGreen : AppColors.lightGray),
+              width: hasError ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: file != null
+                      ? AppColors.primaryGreen.withOpacity(0.1)
+                      : AppColors.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: file != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(file, fit: BoxFit.cover),
+                      )
+                    : Icon(
+                        CupertinoIcons.cloud_upload,
+                        color: AppColors.primaryOrange,
+                        size: 22,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.darkGray,
+                            ),
+                          ),
+                        ),
+                        if (required)
+                          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      file != null ? file.path.split('/').last : 'Tap to upload',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: file != null ? AppColors.primaryGreen : AppColors.midGray,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (hasError) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _errors[errorKey]!,
+                        style: const TextStyle(color: Colors.red, fontSize: 11),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                file != null ? Icons.check_circle : CupertinoIcons.chevron_right,
+                color: file != null ? AppColors.primaryGreen : AppColors.midGray,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentsStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Documents', CupertinoIcons.doc_text),
+          const SizedBox(height: 8),
+          Text(
+            'Upload photos of your documents. Required documents are marked with *.',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.midGray.withOpacity(0.8),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildDocumentUploadCard(
+            label: "Driver's License (Front)",
+            errorKey: 'driverLicenseFront',
+            file: _driverLicenseFrontFile,
+            onPicked: (f) => _driverLicenseFrontFile = f,
+            required: true,
+          ),
+          _buildDocumentUploadCard(
+            label: "Driver's License (Back)",
+            errorKey: 'driverLicenseBack',
+            file: _driverLicenseBackFile,
+            onPicked: (f) => _driverLicenseBackFile = f,
+          ),
+          _buildDocumentUploadCard(
+            label: 'National ID (Front)',
+            errorKey: 'nationalIdFront',
+            file: _nationalIdFrontFile,
+            onPicked: (f) => _nationalIdFrontFile = f,
+            required: true,
+          ),
+          _buildDocumentUploadCard(
+            label: 'National ID (Back)',
+            errorKey: 'nationalIdBack',
+            file: _nationalIdBackFile,
+            onPicked: (f) => _nationalIdBackFile = f,
+          ),
+          _buildDocumentUploadCard(
+            label: 'Vehicle Registration',
+            errorKey: 'vehicleRegistration',
+            file: _vehicleRegistrationFile,
+            onPicked: (f) => _vehicleRegistrationFile = f,
+            required: true,
+          ),
+          _buildDocumentUploadCard(
+            label: 'Insurance Certificate',
+            errorKey: 'insuranceCertificate',
+            file: _insuranceCertificateFile,
+            onPicked: (f) => _insuranceCertificateFile = f,
+            required: true,
+          ),
+          _buildDocumentUploadCard(
+            label: 'Vehicle Photo (Front)',
+            errorKey: 'vehiclePhotoFront',
+            file: _vehiclePhotoFrontFile,
+            onPicked: (f) => _vehiclePhotoFrontFile = f,
+            required: true,
+          ),
+          _buildDocumentUploadCard(
+            label: 'Vehicle Photo (Rear)',
+            errorKey: 'vehiclePhotoRear',
+            file: _vehiclePhotoRearFile,
+            onPicked: (f) => _vehiclePhotoRearFile = f,
+          ),
+          _buildDocumentUploadCard(
+            label: 'Vehicle Photo (Interior)',
+            errorKey: 'vehiclePhotoInterior',
+            file: _vehiclePhotoInteriorFile,
+            onPicked: (f) => _vehiclePhotoInteriorFile = f,
+          ),
+          _buildDocumentUploadCard(
+            label: 'Inspection Certificate',
+            errorKey: 'inspectionCertificate',
+            file: _inspectionCertificateFile,
+            onPicked: (f) => _inspectionCertificateFile = f,
+            required: true,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPaymentInfoStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -800,6 +1113,26 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
                 _buildReviewItem('License Plate', _licensePlateController.text),
               if (_vehicleType != 'bicycle' && _driverLicenseController.text.isNotEmpty)
                 _buildReviewItem('Driver License', _driverLicenseController.text),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Documents Card
+          _buildReviewCard(
+            icon: CupertinoIcons.doc_text_fill,
+            iconColor: const Color(0xFF9C27B0),
+            title: 'Documents',
+            items: [
+              _buildReviewItem("Driver's License (Front)", _driverLicenseFrontFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem("Driver's License (Back)", _driverLicenseBackFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('National ID (Front)', _nationalIdFrontFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('National ID (Back)', _nationalIdBackFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('Vehicle Registration', _vehicleRegistrationFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('Insurance Certificate', _insuranceCertificateFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('Vehicle Photo (Front)', _vehiclePhotoFrontFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('Vehicle Photo (Rear)', _vehiclePhotoRearFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('Vehicle Photo (Interior)', _vehiclePhotoInteriorFile != null ? 'Uploaded' : 'Not uploaded'),
+              _buildReviewItem('Inspection Certificate', _inspectionCertificateFile != null ? 'Uploaded' : 'Not uploaded'),
             ],
           ),
           const SizedBox(height: 16),
@@ -1091,7 +1424,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
             child: ElevatedButton(
               onPressed: _isSubmitting || _isValidating
                   ? null
-                  : (_currentStep == 3 ? _submitApplication : _nextStep),
+                  : (_currentStep == 4 ? _submitApplication : _nextStep),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryOrange,
                 foregroundColor: Colors.white,
@@ -1111,7 +1444,7 @@ class _DriverApplicationFormScreenState extends State<DriverApplicationFormScree
                       ),
                     )
                   : Text(
-                      _currentStep == 3 ? 'Submit Application' : 'Continue',
+                      _currentStep == 4 ? 'Submit Application' : 'Continue',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

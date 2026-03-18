@@ -6,6 +6,7 @@ import 'package:flaride_driver/core/services/biometric_service.dart';
 import 'package:flaride_driver/core/services/secure_storage_service.dart';
 import 'package:flaride_driver/core/providers/driver_provider.dart';
 import 'package:flaride_driver/features/driver/driver_home_page.dart';
+import 'package:flaride_driver/features/driver/driver_set_password_screen.dart';
 import 'package:flaride_driver/features/auth/screens/forgot_password_screen.dart';
 import 'package:flaride_driver/features/apply/driver_apply_onboarding_screen.dart';
 import 'package:provider/provider.dart';
@@ -130,10 +131,19 @@ class _DriverLoginScreenState extends State<DriverLoginScreen>
       if (!mounted) return;
 
       if (isDriver) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const DriverHomePage()),
-          (route) => false,
-        );
+        // Check if driver must change temp password after biometric login
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        if (authProvider.mustChangePassword) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const DriverSetPasswordScreen()),
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const DriverHomePage()),
+            (route) => false,
+          );
+        }
       } else {
         setState(() {
           _error = 'Session expired. Please sign in again.';
@@ -205,6 +215,15 @@ class _DriverLoginScreenState extends State<DriverLoginScreen>
               _isLoading = false;
             });
             await authProvider.logout();
+            return;
+          }
+          
+          // Check if driver must change temp password
+          if (authProvider.mustChangePassword) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const DriverSetPasswordScreen()),
+              (route) => false,
+            );
             return;
           }
           

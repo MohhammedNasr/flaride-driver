@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flaride_driver/core/services/auth_provider.dart';
 import 'package:flaride_driver/core/theme/app_colors.dart';
 import 'package:flaride_driver/features/driver/driver_home_page.dart';
+import 'package:flaride_driver/features/auth/screens/login_screen.dart';
 
 class DriverSetPasswordScreen extends StatefulWidget {
   static const String routeName = '/driver/set-password';
@@ -45,7 +46,10 @@ class _DriverSetPasswordScreenState extends State<DriverSetPasswordScreen> {
 
       if (success && mounted) {
         // Password changed successfully, navigate to driver home
-        Navigator.of(context).pushReplacementNamed(DriverHomePage.routeName);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const DriverHomePage()),
+          (route) => false,
+        );
       } else if (mounted) {
         setState(() {
           _errorMessage = authProvider.error ?? 'Failed to set password';
@@ -68,7 +72,9 @@ class _DriverSetPasswordScreenState extends State<DriverSetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -287,11 +293,35 @@ class _DriverSetPasswordScreenState extends State<DriverSetPasswordScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
+                
+                const SizedBox(height: 16),
+                
+                // Logout option
+                TextButton(
+                  onPressed: () async {
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    await authProvider.logout();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const DriverLoginScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
+                  child: Text(
+                    'Sign out',
+                    style: TextStyle(
+                      color: AppColors.midGray,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
       ),
+    ),
     );
   }
 
